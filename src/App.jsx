@@ -7,6 +7,8 @@ import {
   applyEdgeChanges,
   applyNodeChanges,
   ReactFlowProvider,
+  getNodesBounds,
+  getViewportForBounds,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { toPng } from 'html-to-image';
@@ -557,24 +559,43 @@ function App() {
     if (newNode) setNodes((nds) => nds.concat(newNode));
   }, [reactFlowInstance, recordAction]);
 
-  const onExportPng = useCallback(() => {
-    if (reactFlowWrapper.current === null) return;
-    toPng(reactFlowWrapper.current, {
-      backgroundColor: '#0b0c10',
-      filter: (node) => {
-        if (node?.classList?.contains('corporate-logo')) return true;
-        return !node?.classList?.contains('react-flow__controls') &&
-          !node?.classList?.contains('react-flow__attribution') &&
-          !node?.classList?.contains('top-bar') &&
-          node?.tagName !== 'ASIDE';
-      },
-    }).then((dataUrl) => {
-      const link = document.createElement('a');
-      link.download = `sparkcanvas-${currentMap}.png`;
-      link.href = dataUrl;
-      link.click();
-    });
-  }, [currentMap]);
+  const onExportImage = useCallback(() => {
+    if (reactFlowWrapper.current === null || !reactFlowInstance) return;
+
+    const currentViewport = reactFlowInstance.getViewport();
+    
+    // Fit everything into view for capture
+    reactFlowInstance.fitView({ padding: 0.1 });
+
+    // Wait for fitView to stabilize
+    setTimeout(() => {
+      const el = reactFlowWrapper.current;
+      toPng(el, {
+        backgroundColor: '#0b0c10',
+        pixelRatio: 3, // Very high quality, no blur when zooming
+        width: el.offsetWidth,
+        height: el.offsetHeight,
+        filter: (node) => {
+          if (node?.classList?.contains('corporate-logo')) return true;
+          return !node?.classList?.contains('react-flow__controls') &&
+            !node?.classList?.contains('react-flow__attribution') &&
+            !node?.classList?.contains('top-bar') &&
+            node?.tagName !== 'ASIDE';
+        },
+      }).then((dataUrl) => {
+        const link = document.createElement('a');
+        link.download = `sparkcanvas-${currentMap}.png`;
+        link.href = dataUrl;
+        link.click();
+        
+        // Restore view
+        reactFlowInstance.setViewport(currentViewport);
+      }).catch((err) => {
+        console.error("Export failed:", err);
+        reactFlowInstance.setViewport(currentViewport);
+      });
+    }, 250); // Slightly more time for large maps
+  }, [currentMap, reactFlowInstance]);
 
   const contextValue = React.useMemo(() => ({
     onDeleteNode, updateNodeData, toggleNodeEdit, setEditingNodeId: toggleNodeEdit // Alias for compat
@@ -586,7 +607,7 @@ function App() {
     <div style={{ width: '100vw', height: '100vh', display: 'flex', background: 'var(--bg-color)', color: 'white' }}>
       <NodeActionContext.Provider value={contextValue}>
         <ReactFlowProvider>
-          <Sidebar onExportPng={onExportPng} onImportPhpIpam={() => setIsImportModalOpen(true)} />
+          <Sidebar onExportPng={onExportImage} onImportPhpIpam={() => setIsImportModalOpen(true)} />
           <div style={{ flexGrow: 1, position: 'relative' }} ref={reactFlowWrapper}>
             <input type="file" id="logo-upload" accept="image/*" style={{ display: 'none' }} onChange={handleLogoUpload} />
             <TopBar

@@ -217,6 +217,18 @@ const NetworkNode = ({ data, selected, id }) => {
                         {isEditing ? <select name="type" value={editData.type} onChange={handleChange} className="tech-input" style={{ width: '110px' }}>{deviceTypes.map(dt => <option key={dt.type} value={dt.type}>{dt.label}</option>)}</select> : <span style={{ fontSize: '0.65rem', fontWeight: '800', color: accentColor }}>{data.type || 'server'}</span>}
                     </div>
 
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span className="section-label">Status</span>
+                        {isEditing ? (
+                            <select name="status" value={editData.status} onChange={handleChange} className="tech-input" style={{ width: '100px', fontSize: '0.65rem' }}>
+                                <option value="online">Online</option>
+                                <option value="offline">Offline</option>
+                            </select>
+                        ) : (
+                            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: data.status === 'online' ? 'var(--accent-green)' : 'var(--text-secondary)', textTransform: 'uppercase' }}>{data.status || 'online'}</span>
+                        )}
+                    </div>
+
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
                         {isEditing ? <input name="model" value={editData.model} onChange={handleChange} className="tech-input" style={{ width: '100%', boxSizing: 'border-box' }} /> : (data.model || 'Generic Device')}
                     </div>
@@ -271,9 +283,27 @@ const NetworkNode = ({ data, selected, id }) => {
                                                 {(() => { const CIcon = iconMap[c.customIcon] || (c.name === 'DB' ? Database : (c.name === 'VOIP' ? Phone : (c.name === 'Docker' ? Container : (c.name === 'Proxy' ? Globe : Box)))); return <CIcon size={12} color="var(--text-secondary)" />; })()}
                                                 <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>{c.name}</span>
                                             </div>
-                                            {isEditing && <button onClick={() => setEditData(p => ({ ...p, containers: p.containers.filter((_, idx) => idx !== i) }))} style={{ background: 'transparent', border: 'none', color: '#ef4444' }}><Trash2 size={10} /></button>}
+                                            {isEditing && (
+                                                <div style={{ display: 'flex', gap: '4px' }}>
+                                                    <button onClick={() => setEditData(p => ({ ...p, containers: p.containers.map((item, idx) => idx === i ? { ...item, status: item.status === 'offline' ? 'online' : 'offline' } : item) }))} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }} title="Toggle Status"><Activity size={10} /></button>
+                                                    <button onClick={() => setEditData(p => ({ ...p, containers: p.containers.filter((_, idx) => idx !== i) }))} style={{ background: 'transparent', border: 'none', color: '#ef4444' }}><Trash2 size={10} /></button>
+                                                </div>
+                                            )}
                                         </div>
-                                        {isEditing ? <input placeholder="Port" value={c.port} onChange={(e) => { const v = e.target.value; setEditData(p => ({ ...p, containers: p.containers.map((item, idx) => idx === i ? { ...item, port: v } : item) })); }} className="tech-input" style={{ width: '100%' }} /> : <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Port: {c.port}</span>}
+                                        {isEditing ? (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', marginTop: '2px' }}>
+                                                <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', flexShrink: 0 }}>PORT:</span>
+                                                <input 
+                                                    placeholder="80..." 
+                                                    value={c.port} 
+                                                    onChange={(e) => { const v = e.target.value; setEditData(p => ({ ...p, containers: p.containers.map((item, idx) => idx === i ? { ...item, port: v } : item) })); }} 
+                                                    className="tech-input" 
+                                                    style={{ flexGrow: 1, width: '0', minWidth: '50px', fontSize: '0.65rem', boxSizing: 'border-box' }} 
+                                                />
+                                            </div>
+                                        ) : (
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginLeft: '14px' }}>Port: {c.port || '??'}</span>
+                                        )}
                                     </div>
                                 ))}
                             </div>
