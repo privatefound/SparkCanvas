@@ -4,7 +4,7 @@ import {
     Router, Server, Monitor, HardDrive, Network, Cpu, Wifi, Database, Box, Zap, Trash2,
     Activity, Layers, Container, Settings, Edit3, Check, Plus, Shield, Globe, Lock,
     Eye, EyeOff, PlusSquare, Laptop, Smartphone, Printer, Radio, Key, DatabaseZap,
-    LayoutGrid, Folder, X
+    LayoutGrid, Folder, X, Phone
 } from 'lucide-react';
 import { NodeActionContext } from '../../App';
 
@@ -13,11 +13,12 @@ const iconMap = {
     switch: Network, nas: Database, ap: Wifi, ups: Box, firewall: Shield, proxy: Globe,
     vpn: Lock, gpu: Zap, pool: DatabaseZap, custom: PlusSquare, laptop: Laptop,
     smartphone: Smartphone, printer: Printer, radio: Radio, key: Key, iot: Cpu,
-    ad: LayoutGrid, fs: Folder, proxmox: Box, vmware: Box, hyperv: Box
+    ad: LayoutGrid, fs: Folder, proxmox: Box, vmware: Box, hyperv: Box,
+    voip: Phone, db: Database
 };
 
 const selectableIcons = [
-    'server', 'switch', 'firewall', 'nas', 'ap', 'ups', 'router', 'pc', 'laptop', 'smartphone', 'printer', 'radio', 'key', 'database', 'zap', 'shield', 'lock', 'globe', 'custom', 'iot', 'ad', 'fs'
+    'server', 'switch', 'firewall', 'nas', 'ap', 'ups', 'router', 'pc', 'laptop', 'smartphone', 'printer', 'radio', 'key', 'database', 'zap', 'shield', 'lock', 'globe', 'custom', 'iot', 'ad', 'fs', 'voip', 'db'
 ];
 
 const deviceTypes = [
@@ -26,6 +27,8 @@ const deviceTypes = [
     { type: 'switch', label: 'Switch' },
     { type: 'server', label: 'Server' },
     { type: 'nas', label: 'NAS' },
+    { type: 'db', label: 'Database' },
+    { type: 'voip', label: 'VOIP' },
     { type: 'ap', label: 'Access Point' },
     { type: 'iot', label: 'IoT' },
     { type: 'ups', label: 'UPS' },
@@ -38,7 +41,7 @@ const colorMap = {
     router: '#f472b6', server: '#fb923c', sbc: '#4ade80', pc: '#38bdf8', nas: '#38bdf8',
     ups: '#4ade80', ap: '#facc15', switch: '#38bdf8', firewall: '#ef4444', proxy: '#38bdf8',
     vpn: '#a855f7', pool: '#facc15', custom: '#9499ab', iot: '#4ade80',
-    ad: '#38bdf8', fs: '#facc15'
+    ad: '#38bdf8', fs: '#facc15', db: '#38bdf8', voip: '#4ade80'
 };
 
 const NetworkNode = ({ data, selected, id }) => {

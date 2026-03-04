@@ -28,7 +28,8 @@ import {
     Container,
     Printer,
     LayoutGrid,
-    Folder
+    Folder,
+    Phone
 } from 'lucide-react';
 
 const nodeTypes = [
@@ -45,6 +46,8 @@ const nodeTypes = [
 
 const serviceTypes = [
     { type: 'dhcp', label: 'DHCP Pool', icon: DatabaseZap, color: '#facc15' },
+    { type: 'db', label: 'DB', icon: Database, color: '#38bdf8' },
+    { type: 'voip', label: 'VOIP', icon: Phone, color: '#4ade80' },
     { type: 'dns', label: 'DNS', icon: Globe, color: '#38bdf8' },
     { type: 'pihole', label: 'Pi-hole', icon: ShieldCheck, color: '#ef4444' },
     { type: 'netdata', label: 'Netdata', icon: Activity, color: '#4ade80' },

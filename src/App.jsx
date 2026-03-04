@@ -14,7 +14,8 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   Edit3, Trash2, X, DatabaseZap, FileUp,
   RotateCcw, RotateCw, Save, Layers,
-  Plus, ChevronDown, Upload, FileSpreadsheet, Info, CheckCircle
+  Plus, ChevronDown, Upload, FileSpreadsheet, Info, CheckCircle,
+  Loader2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
@@ -114,6 +115,7 @@ const TopBar = ({
 const ImportModal = ({ isOpen, onClose, onImport }) => {
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -127,28 +129,43 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
 
   const processImport = () => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-      let hr = 0; 
-      for (let i = 0; i < rows.length; i++) { 
-        if (rows[i].some(c => String(c).toLowerCase().includes('ip address'))) { 
-          hr = i; break; 
-        } 
-      }
-      onImport(XLSX.utils.sheet_to_json(worksheet, { range: hr }));
-      onClose();
-      setFile(null);
-    };
-    reader.readAsArrayBuffer(file);
+    setIsImporting(true);
+    
+    // Slight timeout to allow the UI to show the loader before heavy calculation starts
+    setTimeout(() => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        let hr = 0; 
+        for (let i = 0; i < rows.length; i++) { 
+          if (rows[i].some(c => String(c).toLowerCase().includes('ip address'))) { 
+            hr = i; break; 
+          } 
+        }
+        onImport(XLSX.utils.sheet_to_json(worksheet, { range: hr }));
+        setIsImporting(false);
+        onClose();
+        setFile(null);
+      };
+      reader.readAsArrayBuffer(file);
+    }, 100);
   };
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.9)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
-      <div className="glass-panel" style={{ width: '500px', padding: '30px', background: 'var(--node-bg)', border: '1px solid var(--panel-border)', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+      <div className="glass-panel" style={{ width: '500px', padding: '30px', background: 'var(--node-bg)', border: '1px solid var(--panel-border)', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative' }}>
+        
+        {isImporting && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(20, 21, 27, 0.8)', zIndex: 10, borderRadius: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '15px', backdropFilter: 'blur(4px)' }}>
+            <Loader2 className="spinning" size={48} color="var(--accent-blue)" />
+            <div style={{ fontWeight: '900', letterSpacing: '2px', color: 'white', fontSize: '0.9rem' }}>ANALYZING ARCHITECTURE...</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Processing phpIPAM data and building nodes</div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ background: 'var(--accent-blue)', padding: '8px', borderRadius: '10px', display: 'flex' }}><DatabaseZap size={20} color="#000" /></div>
