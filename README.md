@@ -44,8 +44,10 @@ L'app sarà disponibile all'indirizzo: `http://localhost:3001`
 
 ---
 
+## 🤝 Contributing
+Created by **privatefound**.
+
 ## 📜 License
 Licensed under the MIT License. Built with 💻 and ☕ for the Homelab community.
 
 ---
-*Mapping your digital kingdom has never looked this good.* 👑
