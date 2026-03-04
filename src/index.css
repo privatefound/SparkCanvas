@@ -1,0 +1,161 @@
+:root {
+  --bg-color: #0b0c10;
+  --panel-bg: rgba(18, 18, 22, 0.95);
+  --panel-border: rgba(255, 255, 255, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: #9499ab;
+  --accent-blue: #38bdf8;
+  --accent-green: #4ade80;
+  --accent-purple: #a855f7;
+  --accent-yellow: #facc15;
+  --accent-orange: #fb923c;
+  --danger-red: #ef4444;
+  
+  --node-radius: 14px;
+  --node-bg: #14151b;
+  
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.react-flow__background {
+  background-color: var(--bg-color);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.tech-node {
+  background: var(--node-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--node-radius);
+  padding: 0;
+  min-width: 280px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  overflow: visible; /* Changed to visible for handles/buttons */
+  transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tech-node.selected {
+  outline: 2px solid var(--accent-blue);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+}
+
+.node-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--panel-border);
+  background: rgba(255,255,255,0.02);
+}
+
+.node-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.container-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+/* Node Action Buttons */
+.node-action-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.node-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-color: var(--accent-blue);
+}
+
+.node-action-btn.delete:hover {
+  color: var(--danger-red);
+  border-color: var(--danger-red);
+}
+
+/* Context Menu */
+.context-menu {
+  position: fixed;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 6px;
+  z-index: 1000;
+  min-width: 160px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px);
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.context-menu-item:hover {
+  background: rgba(56, 189, 248, 0.1);
+  color: white;
+}
+
+.context-menu-item.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger-red);
+}
+
+/* Tech Inputs */
+.tech-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  color: white;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.tech-input:focus {
+  border-color: var(--accent-blue);
+}
