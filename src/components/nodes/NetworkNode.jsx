@@ -20,6 +20,20 @@ const selectableIcons = [
     'server', 'switch', 'firewall', 'nas', 'ap', 'ups', 'router', 'pc', 'laptop', 'smartphone', 'printer', 'radio', 'key', 'database', 'zap', 'shield', 'lock', 'globe', 'custom', 'iot', 'ad', 'fs'
 ];
 
+const deviceTypes = [
+    { type: 'firewall', label: 'Firewall' },
+    { type: 'router', label: 'Router' },
+    { type: 'switch', label: 'Switch' },
+    { type: 'server', label: 'Server' },
+    { type: 'nas', label: 'NAS' },
+    { type: 'ap', label: 'Access Point' },
+    { type: 'iot', label: 'IoT' },
+    { type: 'ups', label: 'UPS' },
+    { type: 'pc', label: 'PC' },
+    { type: 'laptop', label: 'Laptop' },
+    { type: 'custom', label: 'Custom' },
+];
+
 const colorMap = {
     router: '#f472b6', server: '#fb923c', sbc: '#4ade80', pc: '#38bdf8', nas: '#38bdf8',
     ups: '#4ade80', ap: '#facc15', switch: '#38bdf8', firewall: '#ef4444', proxy: '#38bdf8',
@@ -228,6 +242,19 @@ const NetworkNode = ({ data, selected, id }) => {
                         </div>
                     </div>
                 )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span className="section-label">Device Type</span>
+                    {isEditing ? (
+                        <select name="type" value={editData.type} onChange={handleChange} className="tech-input" style={{ width: '120px', fontSize: '0.65rem' }}>
+                            {deviceTypes.map(dt => (
+                                <option key={dt.type} value={dt.type}>{dt.label}</option>
+                            ))}
+                        </select>
+                    ) : (
+                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: accentColor, textTransform: 'uppercase' }}>{data.type || 'server'}</span>
+                    )}
+                </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span className="section-label">Status</span>
