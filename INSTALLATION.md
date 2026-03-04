@@ -4,69 +4,63 @@ Follow these steps to get your SparkCanvas instance up and running on your local
 
 ---
 
-## 📋 Prerequisites
+## 🚀 One-Step Installation
 
-Before you begin, ensure you have the following installed:
-*   **Node.js**: Version 18.0 or later (Recommended: Latest LTS).
+The easiest way to install SparkCanvas on Linux is with the provided installation script. This script will:
+*   Install all necessary dependencies.
+*   Build the frontend for production.
+*   Copy the project to `/opt/sparkcanvas`.
+*   Create, enable, and start a systemd service.
+
+### 📋 Prerequisites
+*   **Node.js**: Version 18.0 or later.
 *   **npm**: Included with Node.js.
 *   **Git**: For cloning the repository.
 
----
+**On Debian/Ubuntu, run this to install prerequisites:**
+```bash
+sudo apt update && sudo apt install -y curl git && \
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && \
+sudo apt install -y nodejs
+```
 
-## ⚙️ Step 1: Clone the Repository
+### ⚙️ Command
 
-Open your terminal and run the following command to download the SparkCanvas source code:
+Open your terminal and run:
 
 ```bash
-git clone https://github.com/your-username/SparkCanvas.git
-cd SparkCanvas
+git clone https://github.com/privatefound/SparkCanvas.git && cd SparkCanvas && chmod +x install.sh && ./install.sh
 ```
 
 ---
 
-## 📦 Step 2: Install Dependencies
+## ⚙️ How to Manage the Service
 
-SparkCanvas relies on several high-performance libraries (React Flow, Lucide, XLSX). Install them using npm:
+Once installed, SparkCanvas runs as a system service named `sparkcanvas`. You can manage it with the following commands:
 
-```bash
-npm install
-```
-
----
-
-## 🚀 Step 3: Run in Development Mode
-
-To start the development server and see the high-tech UI in action:
-
-```bash
-npm run dev
-```
-
-*   **URL**: [http://localhost:5173](http://localhost:5173)
-*   The dashboard will automatically reload as you make changes to the code.
-
----
-
-## 🏗️ Step 4: Build for Production
-
-If you want to host SparkCanvas on a web server (e.g., Nginx, Apache):
-
-1.  **Generate the build**:
+*   **Check Status**:
     ```bash
-    npm run build
+    sudo systemctl status sparkcanvas
     ```
-2.  **Deploy**: Copy the contents of the `dist/` folder to your web server's public directory.
+
+*   **View Real-Time Logs**:
+    ```bash
+    journalctl -u sparkcanvas -f
+    ```
+
+*   **Restart**:
+    ```bash
+    sudo systemctl restart sparkcanvas
+    ```
+
+*   **Stop**:
+    ```bash
+    sudo systemctl stop sparkcanvas
+    ```
 
 ---
 
 ## 📂 Features & Workflows
-
-### 🧩 Adding Services
-You can easily assign services to your nodes:
-1.  Locate the **Services** section in the sidebar.
-2.  **Drag** a service (e.g., Pi-hole, Grafana).
-3.  **Drop** it onto a node (Server, NAS, etc.) in the canvas.
-4.  The service will appear in the "Containers / Apps" section of that node.
 
 ### 📂 Importing Data (phpIPAM)
 SparkCanvas is pre-configured to work with **phpIPAM** exports:
@@ -76,13 +70,6 @@ SparkCanvas is pre-configured to work with **phpIPAM** exports:
 
 ### 🖼️ Exporting
 Click **"Export Map"** to download a high-quality PNG of your current network map.
-
----
-
-## ❓ Troubleshooting
-
-*   **Excel Parsing Error**: Ensure your Excel file has a clear header row. SparkCanvas looks for "ip address" or "hostname".
-*   **Port Conflict**: If port 5173 is in use, Vite will automatically try another port (e.g., 5174). Check the terminal output for the correct URL.
 
 ---
 

@@ -10,6 +10,18 @@
 
 ---
 
+## 🚀 Quick Start (One Command)
+
+Se sei pigro, usa questo comando per fare tutto in automatico (installazione, build e servizio):
+
+```bash
+git clone https://github.com/privatefound/SparkCanvas.git && cd SparkCanvas && chmod +x install.sh && ./install.sh
+```
+
+L'app sarà disponibile all'indirizzo: `http://localhost:3001`
+
+---
+
 ## ✨ Key Features
 
 ### 🛠️ Interactive Network Builder
@@ -18,36 +30,17 @@
 *   **Custom Node Engine**: Create unique devices with a library of tech icons and full RGB color control. 🎨
 *   **Malleable Connections**: No more rigid lines. Enjoy smooth, animated Bezier curves that simulate real-time data flow. 🌊
 
-### 📊 Deep Infrastructure Insight
-*   **Multi-NIC Support**: Add infinite network interfaces (WAN, LAN, MGMT) with dedicated IPs to any node.
-*   **Hardware Monitoring**: Document CPU cores, RAM, and Disk storage for every machine.
-*   **App Stack Visualization**: See your containers and services listed beautifully inside their host nodes.
-
 ### 🔌 Smart Integration
-*   **phpIPAM Intelligent Import**: Drop your `.xls` or `.xlsx` export and watch SparkCanvas build your network draft automatically using advanced heuristics (Hostname, Description, and MAC OUI detection). 🤖
-*   **DHCP Intelligence**: Automatically groups DHCP pools into single, clean range nodes (e.g., `172.16.0.10 - .50`).
-
-### 🖱️ Seamless UX
-*   **Pro Context Menu**: Right-click any node to Edit or Delete instantly.
-*   **Multi-Map Support**: Create and manage different network maps (Main, DMZ, Lab, etc.) with local storage persistence.
-*   **High-Res Export**: Turn your masterpiece into a high-quality PNG for your documentation or GitHub profile. 📸
-
----
-
-## 🚀 Quick Start
-
-1.  **Clone the vision**: `git clone https://github.com/privatefound/SparkCanvas.git`
-2.  **Ignite dependencies**: `npm install`
-3.  **Launch the dashboard**: `npm run dev`
+*   **phpIPAM Intelligent Import**: Drop your `.xls` or `.xlsx` export and watch SparkCanvas build your network draft automatically using advanced heuristics. 🤖
+*   **SQLite Persistence**: Your data is stored locally and securely in a private database.
 
 ---
 
 ## 🛠️ Built With
 *   [React 19](https://react.dev/) - The engine
+*   [SQLite3](https://github.com/sqlite/sqlite3) - Local data persistence
 *   [@xyflow/react](https://reactflow.dev/) - The canvas
 *   [Lucide-React](https://lucide.dev/) - The icons
-*   [XLSX](https://github.com/SheetJS/sheetjs) - The data bridge
-*   [Vite](https://vitejs.dev/) - The lightning-fast build tool
 
 ---
 

@@ -1,13 +1,48 @@
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-const { exec } = require('child_process');
-const { proxmoxApi } = require('proxmox-api');
-const https = require('https');
+import express from 'express';
+import cors from 'cors';
+import { exec } from 'child_process';
+import sqlite3 from 'sqlite3';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Helper for __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+
+// Serve static files from the 'dist' directory
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// --- SQLite Setup ---
+const dbPath = path.join(__dirname, 'sparkcanvas.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) console.error("Error opening database", err.message);
+    else console.log("Connected to SQLite database.");
+});
+
+// Initialize Table
+db.serialize(() => {
+    db.run("CREATE TABLE IF NOT EXISTS system_data (key TEXT PRIMARY KEY, value TEXT)");
+});
+
+// API Endpoints for Maps
+app.get('/api/maps', (req, res) => {
+    db.get("SELECT value FROM system_data WHERE key = 'all_maps'", (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(row ? JSON.parse(row.value) : null);
+    });
+});
+
+app.post('/api/maps', (req, res) => {
+    const maps = JSON.stringify(req.body);
+    db.run("INSERT OR REPLACE INTO system_data (key, value) VALUES ('all_maps', ?)", [maps], (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ status: 'success' });
+    });
+});
 
 // Point 5: Live Monitoring (Ping)
 app.post('/api/ping', (req, res) => {
@@ -16,7 +51,6 @@ app.post('/api/ping', (req, res) => {
         return res.json({ status: 'offline' });
     }
     
-    // Command based on OS
     const command = process.platform === 'win32' 
         ? `ping -n 1 -w 1000 ${ip}` 
         : `ping -c 1 -W 1 ${ip}`;
@@ -26,59 +60,9 @@ app.post('/api/ping', (req, res) => {
     });
 });
 
-// Point 6: Proxmox Import
-app.post('/api/proxmox/sync', async (req, res) => {
-    const { host, user, password, tokenID, tokenSecret } = req.body;
-    
-    try {
-        // Validation: root usually needs @pam realm
-        let username = user;
-        if (username === 'root') username = 'root@pam';
-
-        // Proxmox API Client Configuration
-        const proxmox = proxmoxApi({
-            host: host.replace(/\/$/, ""), // Remove trailing slash
-            username: username,
-            password: password,
-            tokenID: tokenID,
-            tokenSecret: tokenSecret,
-            // Homelabs often use self-signed certs
-            httpsAgent: new https.Agent({ rejectUnauthorized: false })
-        });
-
-        const nodes = await proxmox.nodes.$get();
-        const allVms = [];
-        
-        for (const node of nodes) {
-            try {
-                const vms = await proxmox.nodes.$(node.node).qemu.$get();
-                const lxcs = await proxmox.nodes.$(node.node).lxc.$get();
-                
-                allVms.push(...vms.map(v => ({ 
-                    name: v.name, 
-                    vmid: v.vmid, 
-                    status: v.status, 
-                    type: 'vm', 
-                    node: node.node 
-                })));
-                
-                allVms.push(...lxcs.map(l => ({ 
-                    name: l.name, 
-                    vmid: l.vmid, 
-                    status: l.status, 
-                    type: 'lxc', 
-                    node: node.node 
-                })));
-            } catch (err) {
-                console.warn(`Could not fetch VMs for node ${node.node}:`, err.message);
-            }
-        }
-
-        res.json({ vms: allVms });
-    } catch (error) {
-        console.error("Proxmox Auth/Sync Error:", error.message);
-        res.status(500).json({ error: "Authentication failed. Check URL, Username (root@pam) and Password/Token." });
-    }
+// Catch-all route for SPA (React)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 const PORT = 3001;

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import logo from '../assets/logo.png';
 import {
     Router,
     Server,
@@ -92,15 +93,13 @@ const Sidebar = ({ onExportPng, onImportPhpIpam }) => {
             <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{ 
-                        background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-purple))', 
-                        padding: '6px', 
+                        padding: '4px', 
                         borderRadius: '8px', 
                         display: 'flex', 
                         alignItems: 'center', 
-                        justifyContent: 'center',
-                        boxShadow: '0 0 15px rgba(56, 189, 248, 0.3)'
+                        justifyContent: 'center'
                     }}>
-                        <Zap size={18} color="white" fill="white" />
+                        <img src={logo} alt="Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
                     </div>
                     <span style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.5px', background: 'linear-gradient(to right, #fff, var(--text-secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                         SparkCanvas

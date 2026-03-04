@@ -4,7 +4,7 @@ import {
     Router, Server, Monitor, HardDrive, Network, Cpu, Wifi, Database, Box, Zap, Trash2,
     Activity, Layers, Container, Settings, Edit3, Check, Plus, Shield, Globe, Lock,
     Eye, EyeOff, PlusSquare, Laptop, Smartphone, Printer, Radio, Key, DatabaseZap,
-    LayoutGrid, Folder
+    LayoutGrid, Folder, X
 } from 'lucide-react';
 import { NodeActionContext } from '../../App';
 
@@ -150,7 +150,9 @@ const NetworkNode = ({ data, selected, id }) => {
                                             padding: '2px 4px',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            color: roleInfo.color
+                                            gap: '4px',
+                                            color: roleInfo.color,
+                                            position: 'relative'
                                         }}>
                                             <roleInfo.icon size={10} />
                                         </div>
@@ -189,7 +191,10 @@ const NetworkNode = ({ data, selected, id }) => {
                                     fontSize: '0.7rem'
                                 }}>
                                     <span>{role}</span>
-                                    <button onClick={() => setEditData(p => ({ ...p, roles: p.roles.filter((_, idx) => idx !== ri) }))} style={{ background: 'transparent', border: 'none', color: 'var(--danger-red)', cursor: 'pointer', padding: 0 }}><Trash2 size={10} /></button>
+                                    <button onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditData(p => ({ ...p, roles: p.roles.filter((_, idx) => idx !== ri) }));
+                                    }} style={{ background: 'transparent', border: 'none', color: 'var(--danger-red)', cursor: 'pointer', padding: 0 }}><Trash2 size={10} /></button>
                                 </div>
                             ))}
                             {(editData.roles?.length === 0 || !editData.roles) && <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Drag roles here to assign</div>}
@@ -352,10 +357,17 @@ const NetworkNode = ({ data, selected, id }) => {
                                             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: c.status === 'offline' ? 'var(--danger-red)' : 'var(--accent-green)' }} />
                                             <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'white' }}>{c.name}</span>
                                         </div>
-                                        {isEditing && (
+                                        {(isEditing || selected) && (
                                             <div style={{ display: 'flex', gap: '4px' }}>
-                                                <button onClick={(e) => { e.stopPropagation(); setEditData(p => ({ ...p, containers: p.containers.map((item, idx) => idx === i ? { ...item, status: item.status === 'offline' ? 'online' : 'offline' } : item) })); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }} title="Toggle Status"><Activity size={10} /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); setEditData(p => ({ ...p, containers: p.containers.filter((_, idx) => idx !== i) })); }} style={{ background: 'transparent', border: 'none', color: '#ef4444' }}><Trash2 size={10} /></button>
+                                                {isEditing && <button onClick={(e) => { e.stopPropagation(); setEditData(p => ({ ...p, containers: p.containers.map((item, idx) => idx === i ? { ...item, status: item.status === 'offline' ? 'online' : 'offline' } : item) })); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }} title="Toggle Status"><Activity size={10} /></button>}
+                                                <button onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    if (isEditing) {
+                                                        setEditData(p => ({ ...p, containers: p.containers.filter((_, idx) => idx !== i) }));
+                                                    } else {
+                                                        updateNodeData(id, { ...data, containers: data.containers.filter((_, idx) => idx !== i) });
+                                                    }
+                                                }} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={10} /></button>
                                             </div>
                                         )}
                                     </div>

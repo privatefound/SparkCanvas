@@ -3,7 +3,8 @@
   box-sizing: border-box;
 }
 
-body, html {
+body,
+html {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -31,14 +32,93 @@ body, html {
 }
 
 /* React Flow Specifics */
-.react-flow__attribution {
+.react-flow__attribution, 
+.react-flow__attribution a,
+[data-message*="React Flow Pro"],
+.react-flow__panel.bottom.right {
   display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  width: 0 !important;
+}
+
+
+/* Controls Styling - FORCED THEME */
+.react-flow__controls.vertical {
+  background: var(--node-bg) !important;
+  border: 1px solid var(--panel-border) !important;
+  border-radius: 8px !important;
+  padding: 4px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.react-flow__controls-button {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid var(--panel-border) !important;
+  color: var(--text-secondary) !important;
+  fill: var(--text-secondary) !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+.react-flow__controls-button:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+  color: var(--accent-blue) !important;
+  fill: var(--accent-blue) !important;
 }
 
 .react-flow__controls-button svg {
-  fill: var(--text-secondary) !important;
+  width: 16px !important;
+  height: 16px !important;
+  fill: currentColor !important;
 }
 
-.react-flow__controls-button:hover svg {
-  fill: var(--text-primary) !important;
+/* Fix for possible internal button styles */
+.react-flow__controls-button * {
+  fill: inherit !important;
+  color: inherit !important;
+}
+
+/* Minimap / Panels */
+.react-flow__panel {
+  background: var(--panel-bg) !important;
+  border: 1px solid var(--panel-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(10px) !important;
+  color: rgb(0, 0, 0) !important;
+}
+
+/* Selection Marquee */
+.react-flow__selection {
+  background: rgba(56, 189, 248, 0.1) !important;
+  border: 1px solid var(--accent-blue) !important;
+  border-radius: 4px !important;
+}
+
+/* Edge Styling */
+.react-flow__edge-path {
+  stroke: var(--accent-blue) !important;
+  stroke-width: 2 !important;
+  filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.3));
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--accent-green) !important;
+  stroke-width: 3 !important;
 }

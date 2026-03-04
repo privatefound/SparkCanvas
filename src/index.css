@@ -159,3 +159,8 @@ body {
 .tech-input:focus {
   border-color: var(--accent-blue);
 }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
