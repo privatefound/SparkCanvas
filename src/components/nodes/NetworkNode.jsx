@@ -48,14 +48,11 @@ const colorMap = {
 const NetworkNode = ({ data, selected, id }) => {
     const { onDeleteNode, updateNodeData, toggleNodeEdit } = useContext(NodeActionContext);
 
-    // Performance Optimization: Check zoom level
-    const zoom = useStore((s) => s.transform[2]);
-    const isConnecting = useStore((s) => !!s.connectionStartHandle);
-    
-    // Level of Detail Thresholds
-    const showDetails = zoom > 0.5 || selected || data.isEditing;
-    const highDetail = zoom > 0.8 || selected || data.isEditing;
-    const showHandlesStyle = (selected || isConnecting || zoom > 1.0) ? { opacity: 1 } : { opacity: 0, width: '1px', height: '1px' };
+    // Always show all details and handles as requested
+    const showDetails = true;
+    const highDetail = true;
+    const showHandles = true;
+    const showHandlesStyle = { opacity: 1 };
 
     const Icon = iconMap[data.customIcon || data.type] || PlusSquare;
     const accentColor = data.customColor || colorMap[data.type] || '#38bdf8';
