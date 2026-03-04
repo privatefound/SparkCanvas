@@ -43,12 +43,12 @@ const loadMaps = async () => {
   }
 };
 import NetworkNode from './components/nodes/NetworkNode';
-
-// --- Context for Node Actions ---
-export const NodeActionContext = createContext(null);
+import AnnotationNode from './components/nodes/AnnotationNode';
+import { NodeActionContext } from './context/NodeActionContext';
 
 const nodeTypes = {
   networkNode: NetworkNode,
+  annotationNode: AnnotationNode,
 };
 
 // --- TopBar Component ---
@@ -247,14 +247,48 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
   );
 };
 
-const ContextMenu = ({ x, y, node, onEdit, onDelete, onClose }) => {
+const ContextMenu = ({ x, y, node, onEdit, onDelete, onClose, onUpdateColor }) => {
   useEffect(() => {
     const h = () => onClose();
     window.addEventListener('click', h); return () => window.removeEventListener('click', h);
   }, [onClose]);
+
+  const colors = [
+    { name: 'Blue', bg: 'rgba(56, 189, 248, 0.1)', border: 'rgba(56, 189, 248, 0.4)' },
+    { name: 'Green', bg: 'rgba(74, 222, 128, 0.1)', border: 'rgba(74, 222, 128, 0.4)' },
+    { name: 'Red', bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.4)' },
+    { name: 'Purple', bg: 'rgba(168, 85, 247, 0.1)', border: 'rgba(168, 85, 247, 0.4)' },
+    { name: 'Yellow', bg: 'rgba(242, 204, 21, 0.1)', border: 'rgba(242, 204, 21, 0.4)' },
+    { name: 'Orange', bg: 'rgba(251, 146, 60, 0.1)', border: 'rgba(251, 146, 60, 0.4)' },
+  ];
+
+  const isArea = node.type === 'annotationNode' && (node.data.variant === 'square' || node.data.variant === 'circle');
+
   return (
     <div className="context-menu" style={{ top: y, left: x }} onClick={e => e.stopPropagation()}>
       <div className="context-menu-item" onClick={() => { onEdit(node.id); onClose(); }}><Edit3 size={14} /> Edit</div>
+      
+      {isArea && (
+        <div style={{ padding: '8px 12px', borderTop: '1px solid var(--panel-border)', borderBottom: '1px solid var(--panel-border)', margin: '4px 0' }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase' }}>Change Color</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+            {colors.map(c => (
+              <div 
+                key={c.name}
+                onClick={() => { onUpdateColor(node.id, c.bg, c.border); onClose(); }}
+                style={{ 
+                  width: '100%', height: '20px', background: c.bg, border: `1px solid ${c.border}`, 
+                  borderRadius: '4px', cursor: 'pointer', transition: 'transform 0.1s'
+                }}
+                onMouseEnter={e => e.target.style.transform = 'scale(1.1)'}
+                onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                title={c.name}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="context-menu-item danger" onClick={() => { onDelete(node.id); onClose(); }}><Trash2 size={14} /> Delete</div>
     </div>
   );
@@ -297,7 +331,6 @@ function App() {
   const [future, setFuture] = useState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [menu, setMenu] = useState(null);
-  const [editingNodeId, setEditingNodeId] = useState(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 
@@ -353,6 +386,24 @@ function App() {
     recordAction();
     setNodes((nds) => nds.map((n) => n.id === nodeId ? { ...n, data: { ...n.data, ...newData } } : n));
   }, [recordAction]);
+
+  const updateNodeColor = useCallback((nodeId, color, borderColor) => {
+    recordAction();
+    setNodes((nds) => nds.map((n) => n.id === nodeId ? { ...n, data: { ...n.data, color, borderColor } } : n));
+  }, [recordAction]);
+
+  const toggleNodeEdit = useCallback((nodeId) => {
+    setNodes((nds) => nds.map((n) => {
+        // Disable editing for all other nodes, toggle for target
+        if (n.data.isEditing && n.id !== nodeId) {
+            return { ...n, data: { ...n.data, isEditing: false } };
+        }
+        if (n.id === nodeId) {
+            return { ...n, data: { ...n.data, isEditing: !n.data.isEditing } };
+        }
+        return n;
+    }));
+  }, []);
 
   const onDeleteNode = useCallback((id) => {
     recordAction();
@@ -413,10 +464,16 @@ function App() {
       const type = detectDeviceType(hostname, item['description'], item['mac']);
       const nodeData = {
         label: hostname || ip, type, model: item['description'] || '', status: 'online', interfaces: [{ name: 'PRIMARY', ip: ip || '0.0.0.0' }],
-        showStats: true, cores: '2', ram: '4GB', disk: '100GB'
+        showStats: true, cores: '2', ram: '4GB', disk: '100GB', isEditing: false
       };
       if (dhcpRange && (type === 'firewall' || type === 'server')) { nodeData.dhcpPool = dhcpRange; dhcpRange = ""; }
-      return { id: uuidv4(), type: 'networkNode', position: { x: (index % 5) * 320, y: Math.floor(index / 5) * 450 }, data: nodeData };
+      return { 
+        id: uuidv4(), 
+        type: 'networkNode', 
+        position: { x: (index % 5) * 320, y: Math.floor(index / 5) * 450 }, 
+        data: nodeData,
+        zIndex: 5 // Sopra le annotazioni
+      };
     }).filter(n => n.data.label);
     setNodes(newNodes);
     
@@ -436,24 +493,40 @@ function App() {
     const type = event.dataTransfer.getData('application/sparkcanvas/type');
     const label = event.dataTransfer.getData('application/sparkcanvas/label');
     
-    if (type !== 'node' || !reactFlowInstance) return;
+    if (!type || !reactFlowInstance) return;
     
     const pos = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-    const newNode = {
-      id: uuidv4(), type: 'networkNode', position: pos,
-      data: { 
-        label: label.toUpperCase(), 
-        type: label, 
-        model: '', 
-        status: 'online', 
-        interfaces: [{ name: 'ETH0', ip: '0.0.0.0' }], 
-        showStats: true, 
-        cores: '1', 
-        ram: '2GB', 
-        disk: '40GB' 
-      }
-    };
-    setNodes((nds) => nds.concat(newNode));
+    
+    let newNode;
+    if (type === 'node') {
+      newNode = {
+        id: uuidv4(), type: 'networkNode', position: pos,
+        zIndex: 5, // Sopra le annotazioni
+        data: { 
+          label: label.toUpperCase(), type: label, model: '', status: 'online', 
+          interfaces: [{ name: 'ETH0', ip: '0.0.0.0' }], showStats: true, 
+          cores: '1', ram: '2GB', disk: '40GB', isEditing: false
+        }
+      };
+    } else if (type === 'annotation') {
+      const variant = label.toLowerCase().includes('circle') ? 'circle' : (label.toLowerCase().includes('note') ? 'note' : 'square');
+      newNode = {
+        id: uuidv4(), type: 'annotationNode', position: pos,
+        zIndex: -1, // Sotto i server
+        width: variant === 'note' ? 300 : 400,
+        height: variant === 'note' ? 150 : 300,
+        data: { 
+          label: variant === 'note' ? 'NOTE TITLE' : '',
+          variant,
+          description: variant === 'note' ? 'Add your description here...' : '',
+          color: variant === 'note' ? 'transparent' : 'rgba(56, 189, 248, 0.05)',
+          borderColor: 'rgba(255, 255, 255, 0.2)',
+          isEditing: false
+        }
+      };
+    }
+
+    if (newNode) setNodes((nds) => nds.concat(newNode));
   }, [reactFlowInstance, recordAction]);
 
   const onExportPng = useCallback(() => {
@@ -473,8 +546,8 @@ function App() {
   }, [currentMap]);
 
   const contextValue = React.useMemo(() => ({
-    onDeleteNode, updateNodeData, editingNodeId, setEditingNodeId
-  }), [onDeleteNode, updateNodeData, editingNodeId, setEditingNodeId]);
+    onDeleteNode, updateNodeData, toggleNodeEdit, setEditingNodeId: toggleNodeEdit // Alias for compat
+  }), [onDeleteNode, updateNodeData, toggleNodeEdit]);
 
   if (!isLoaded) return <div style={{ background: 'var(--bg-color)', width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading Maps...</div>;
 
@@ -504,9 +577,10 @@ function App() {
               panOnDrag={[1, 2]}
               selectionMode="touch"
               proOptions={{ hideAttribution: true }}
+              elevateNodesOnSelect={false}
             >
               <Background color="rgba(255,255,255,0.05)" gap={24} size={1} />
-              {menu && <ContextMenu x={menu.left} y={menu.top} node={menu.node} onEdit={setEditingNodeId} onDelete={onDeleteNode} onClose={() => setMenu(null)} />}
+              {menu && <ContextMenu x={menu.left} y={menu.top} node={menu.node} onEdit={toggleNodeEdit} onDelete={onDeleteNode} onClose={() => setMenu(null)} onUpdateColor={updateNodeColor} />}
             </ReactFlow>
             
             {showSaveSuccess && (

@@ -1,12 +1,12 @@
 import React, { memo, useState, useEffect, useCallback, useContext } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, useStore } from '@xyflow/react';
 import {
     Router, Server, Monitor, HardDrive, Network, Cpu, Wifi, Database, Box, Zap, Trash2,
     Activity, Layers, Container, Settings, Edit3, Check, Plus, Shield, Globe, Lock,
     Eye, EyeOff, PlusSquare, Laptop, Smartphone, Printer, Radio, Key, DatabaseZap,
     LayoutGrid, Folder, X, Phone
 } from 'lucide-react';
-import { NodeActionContext } from '../../App';
+import { NodeActionContext } from '../../context/NodeActionContext';
 
 const iconMap = {
     router: Router, server: Server, sbc: Cpu, pc: Monitor, minipc: Monitor, disk: HardDrive,
@@ -14,11 +14,12 @@ const iconMap = {
     vpn: Lock, gpu: Zap, pool: DatabaseZap, custom: PlusSquare, laptop: Laptop,
     smartphone: Smartphone, printer: Printer, radio: Radio, key: Key, iot: Cpu,
     ad: LayoutGrid, fs: Folder, proxmox: Box, vmware: Box, hyperv: Box,
-    voip: Phone, db: Database
+    voip: Phone, db: Database, activity: Activity, container: Container, terminal: Settings,
+    globe: Globe, shield: Shield, lock: Lock
 };
 
 const selectableIcons = [
-    'server', 'switch', 'firewall', 'nas', 'ap', 'ups', 'router', 'pc', 'laptop', 'smartphone', 'printer', 'radio', 'key', 'database', 'zap', 'shield', 'lock', 'globe', 'custom', 'iot', 'ad', 'fs', 'voip', 'db'
+    'server', 'switch', 'firewall', 'nas', 'ap', 'ups', 'router', 'pc', 'laptop', 'smartphone', 'printer', 'radio', 'key', 'database', 'zap', 'shield', 'lock', 'globe', 'custom', 'iot', 'ad', 'fs', 'voip', 'db', 'activity', 'container', 'terminal'
 ];
 
 const deviceTypes = [
@@ -45,73 +46,31 @@ const colorMap = {
 };
 
 const NetworkNode = ({ data, selected, id }) => {
-    const { onDeleteNode, updateNodeData, editingNodeId, setEditingNodeId } = useContext(NodeActionContext);
+    const { onDeleteNode, updateNodeData, toggleNodeEdit } = useContext(NodeActionContext);
+
+    // Performance Optimization: Reactive zoom and connection state
+    const zoom = useStore((s) => s.transform[2]);
+    const isConnecting = useStore((s) => !!s.connectionStartHandle);
+    const showDetails = zoom > 0.6 || selected || data.isEditing;
+    const showHandles = selected || isConnecting || zoom > 1.2;
 
     const Icon = iconMap[data.customIcon || data.type] || PlusSquare;
     const accentColor = data.customColor || colorMap[data.type] || '#38bdf8';
 
-    const isEditing = editingNodeId === id;
+    const isEditing = data.isEditing;
     const [editData, setEditData] = useState({ ...data });
     const [newInterface, setNewInterface] = useState({ name: '', ip: '' });
     const [newContainer, setNewContainer] = useState({ name: '', ip: '', port: '' });
     const [isDragOver, setIsDragOver] = useState(false);
 
-    // Sync internal state when entering edit mode
     useEffect(() => {
         if (isEditing) setEditData({ ...data });
     }, [isEditing, data]);
 
     const handleSave = useCallback((e) => {
         if (e) e.stopPropagation();
-        updateNodeData(id, editData);
-        setEditingNodeId(null);
-    }, [id, editData, updateNodeData, setEditingNodeId]);
-
-    const handleCancel = useCallback((e) => {
-        if (e) e.stopPropagation();
-        setEditingNodeId(null);
-    }, [setEditingNodeId]);
-
-    const onDropService = (e) => {
-        setIsDragOver(false);
-        const type = e.dataTransfer.getData('application/sparkcanvas/type');
-        const label = e.dataTransfer.getData('application/sparkcanvas/label');
-        
-        if (type && label && type !== 'node') {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            if (type === 'role') {
-                const updatedRoles = [...(data.roles || []), label];
-                updateNodeData(id, { ...data, roles: updatedRoles });
-                if (isEditing) setEditData(prev => ({ ...prev, roles: updatedRoles }));
-            } else if (label === 'DHCP Pool') {
-                updateNodeData(id, { ...data, dhcpPool: '192.168.x.x - .x' });
-                if (isEditing) setEditData(prev => ({ ...prev, dhcpPool: '192.168.x.x - .x' }));
-            } else if (type === 'custom_service') {
-                const customName = window.prompt("Enter Custom App Name:", "My App");
-                if (customName === null) return; // User cancelled
-                
-                const name = customName.trim() || 'Custom App';
-                const updatedContainers = [...(data.containers || []), { name, ip: '', port: '8080', status: 'online', customIcon: 'plus' }];
-                updateNodeData(id, { ...data, containers: updatedContainers });
-                if (isEditing) setEditData(prev => ({ ...prev, containers: updatedContainers }));
-                setEditingNodeId(id);
-            } else {
-                const port = label === 'DNS' ? '53' : (label === 'DHCP Pool' ? '67' : '80');
-                const updatedContainers = [...(data.containers || []), { name: label, ip: '', port, status: 'online' }];
-                updateNodeData(id, { ...data, containers: updatedContainers });
-                if (isEditing) setEditData(prev => ({ ...prev, containers: updatedContainers }));
-            }
-        }
-    };
-
-    const onDragOver = (e) => {
-        if (e.dataTransfer.types.includes('application/sparkcanvas/type')) {
-            e.preventDefault();
-            setIsDragOver(true);
-        }
-    };
+        updateNodeData(id, { ...editData, isEditing: false });
+    }, [id, editData, updateNodeData]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -134,6 +93,41 @@ const NetworkNode = ({ data, selected, id }) => {
         }
     };
 
+    const onDropService = (e) => {
+        setIsDragOver(false);
+        const type = e.dataTransfer.getData('application/sparkcanvas/type');
+        const label = e.dataTransfer.getData('application/sparkcanvas/label');
+        
+        if (type && label && type !== 'node') {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (type === 'role') {
+                const updatedRoles = [...(data.roles || []), label];
+                updateNodeData(id, { ...data, roles: updatedRoles });
+            } else if (label === 'DHCP Pool') {
+                updateNodeData(id, { ...data, dhcpPool: '192.168.x.x - .x' });
+            } else if (type === 'custom_service') {
+                const customName = window.prompt("Enter Custom App Name:", "My App");
+                if (customName === null) return;
+                const name = customName.trim() || 'Custom App';
+                const updatedContainers = [...(data.containers || []), { name, ip: '', port: '8080', status: 'online', customIcon: 'plus' }];
+                updateNodeData(id, { ...data, containers: updatedContainers, isEditing: true });
+            } else {
+                const port = label === 'DNS' ? '53' : (label === 'DHCP Pool' ? '67' : '80');
+                const updatedContainers = [...(data.containers || []), { name: label, ip: '', port, status: 'online' }];
+                updateNodeData(id, { ...data, containers: updatedContainers });
+            }
+        }
+    };
+
+    const onDragOver = (e) => {
+        if (e.dataTransfer.types.includes('application/sparkcanvas/type')) {
+            e.preventDefault();
+            setIsDragOver(true);
+        }
+    };
+
     const isHardwareCapable = data.type === 'server' || data.type === 'firewall' || data.type === 'nas' || data.type === 'sbc' || data.type === 'pc' || data.type === 'minipc';
 
     return (
@@ -143,13 +137,24 @@ const NetworkNode = ({ data, selected, id }) => {
                 borderColor: isDragOver ? 'var(--accent-green)' : (isEditing ? 'var(--accent-blue)' : accentColor),
                 boxShadow: isDragOver ? '0 0 20px rgba(74, 222, 128, 0.4)' : undefined,
                 transform: isDragOver ? 'scale(1.02)' : 'scale(1)',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                minHeight: showDetails ? 'auto' : '60px'
             }}
             onDragOver={onDragOver}
             onDragLeave={() => setIsDragOver(false)}
             onDrop={onDropService}
         >
-            <Handle type="target" position={Position.Top} style={{ background: accentColor }} />
+            {showHandles && (data.interfaces || []).map((ni, index) => {
+                const offset = (index - (data.interfaces.length - 1) / 2) * 24;
+                return (
+                    <React.Fragment key={`h-${index}`}>
+                        <Handle type="target" position={Position.Top} id={`in-t-${ni.name}-${index}`} style={{ left: `calc(50% + ${offset}px)`, background: accentColor, width: '10px', height: '10px', border: '2px solid var(--node-bg)' }} />
+                        <Handle type="source" position={Position.Top} id={`out-t-${ni.name}-${index}`} style={{ left: `calc(50% + ${offset}px)`, background: accentColor, width: '10px', height: '10px', border: '2px solid var(--node-bg)', opacity: 0 }} />
+                        <Handle type="source" position={Position.Bottom} id={`out-b-${ni.name}-${index}`} style={{ left: `calc(50% + ${offset}px)`, background: accentColor, width: '10px', height: '10px', border: '2px solid var(--node-bg)' }} />
+                        <Handle type="target" position={Position.Bottom} id={`in-b-${ni.name}-${index}`} style={{ left: `calc(50% + ${offset}px)`, background: accentColor, width: '10px', height: '10px', border: '2px solid var(--node-bg)', opacity: 0 }} />
+                    </React.Fragment>
+                );
+            })}
 
             <div className="node-header">
                 <div style={{ color: accentColor, display: 'flex' }}><Icon size={18} /></div>
@@ -159,285 +164,106 @@ const NetworkNode = ({ data, selected, id }) => {
                     ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
                             <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.label}</div>
-                            <div style={{ display: 'flex', gap: '3px' }}>
-                                {(data.roles || []).map((role, ri) => {
-                                    const roleInfo = {
-                                        'AD': { icon: LayoutGrid, color: '#38bdf8' },
-                                        'FS': { icon: Folder, color: '#facc15' },
-                                        'Proxmox': { icon: Box, color: '#fb923c' },
-                                        'VMWare': { icon: Box, color: '#38bdf8' },
-                                        'Hyper-V': { icon: Box, color: '#38bdf8' }
-                                    }[role] || { icon: Box, color: 'var(--text-secondary)' };
-                                    return (
-                                        <div key={ri} title={role} style={{ 
-                                            background: `${roleInfo.color}22`, 
-                                            border: `1px solid ${roleInfo.color}44`,
-                                            borderRadius: '4px',
-                                            padding: '2px 4px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            color: roleInfo.color,
-                                            position: 'relative'
-                                        }}>
-                                            <roleInfo.icon size={10} />
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            {showDetails && (
+                                <div style={{ display: 'flex', gap: '3px' }}>
+                                    {(data.roles || []).map((role, ri) => {
+                                        const roleInfo = { 'AD': { icon: LayoutGrid, color: '#38bdf8' }, 'FS': { icon: Folder, color: '#facc15' }, 'Proxmox': { icon: Box, color: '#fb923c' }, 'VMWare': { icon: Box, color: '#38bdf8' }, 'Hyper-V': { icon: Box, color: '#38bdf8' } }[role] || { icon: Box, color: 'var(--text-secondary)' };
+                                        return (
+                                            <div key={ri} title={role} style={{ background: `${roleInfo.color}22`, border: `1px solid ${roleInfo.color}44`, borderRadius: '4px', padding: '2px 4px', display: 'flex', alignItems: 'center', color: roleInfo.color }}>
+                                                <roleInfo.icon size={10} />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
-
-                <div style={{ display: 'flex', gap: '4px', marginRight: '8px', paddingLeft: '4%' }}>
-                    {isEditing ? (
-                        <button onClick={handleSave} className="node-action-btn" title="Save"><Check size={12} color="var(--accent-green)" /></button>
-                    ) : (
-                        <button onClick={(e) => { e.stopPropagation(); setEditingNodeId(id); }} className="node-action-btn" title="Edit"><Edit3 size={12} /></button>
-                    )}
-                    <button onClick={(e) => { e.stopPropagation(); onDeleteNode(id); }} className="node-action-btn delete" title="Delete"><Trash2 size={12} /></button>
-                </div>
+                {showDetails && (
+                    <div style={{ display: 'flex', gap: '4px', marginRight: '8px' }}>
+                        {isEditing ? <button onClick={handleSave} className="node-action-btn"><Check size={12} color="var(--accent-green)" /></button> : <button onClick={(e) => { e.stopPropagation(); toggleNodeEdit(id); }} className="node-action-btn"><Edit3 size={12} /></button>}
+                        <button onClick={(e) => { e.stopPropagation(); onDeleteNode(id); }} className="node-action-btn delete"><Trash2 size={12} /></button>
+                    </div>
+                )}
                 <div className="node-status-dot" style={{ background: data.status === 'online' ? 'var(--accent-green)' : 'var(--text-secondary)' }} />
             </div>
 
-            <div style={{ padding: '16px' }}>
-                {isEditing && (data.roles?.length > 0 || data.type === 'server') && (
-                    <div style={{ marginBottom: '16px' }}>
-                        <span className="section-label">Active Roles</span>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {(editData.roles || []).map((role, ri) => (
-                                <div key={ri} style={{ 
-                                    background: 'rgba(255,255,255,0.05)', 
-                                    border: '1px solid var(--panel-border)', 
-                                    borderRadius: '6px', 
-                                    padding: '4px 8px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    fontSize: '0.7rem'
-                                }}>
-                                    <span>{role}</span>
-                                    <button onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditData(p => ({ ...p, roles: p.roles.filter((_, idx) => idx !== ri) }));
-                                    }} style={{ background: 'transparent', border: 'none', color: 'var(--danger-red)', cursor: 'pointer', padding: 0 }}><Trash2 size={10} /></button>
-                                </div>
-                            ))}
-                            {(editData.roles?.length === 0 || !editData.roles) && <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Drag roles here to assign</div>}
-                        </div>
-                    </div>
-                )}
-                {isEditing && data.type === 'custom' && (
-                    <div style={{ marginBottom: '16px' }}>
-                        <span className="section-label">Select Icon</span>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '8px' }}>
-                            {selectableIcons.map(iconName => {
-                                const SelectionIcon = iconMap[iconName] || PlusSquare;
-                                return (
-                                    <div 
-                                        key={iconName}
-                                        onClick={() => setEditData(prev => ({ ...prev, customIcon: iconName }))}
-                                        style={{ 
-                                            cursor: 'pointer', 
-                                            padding: '4px', 
-                                            borderRadius: '4px',
-                                            background: editData.customIcon === iconName ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            color: editData.customIcon === iconName ? 'var(--accent-blue)' : 'var(--text-secondary)'
-                                        }}
-                                    >
-                                        <SelectionIcon size={14} />
+            {showDetails && (
+                <div style={{ padding: '16px' }}>
+                    {isEditing && (data.roles?.length > 0 || data.type === 'server') && (
+                        <div style={{ marginBottom: '16px' }}>
+                            <span className="section-label">Active Roles</span>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {(editData.roles || []).map((role, ri) => (
+                                    <div key={ri} className="container-card" style={{ padding: '4px 8px', fontSize: '0.7rem' }}>
+                                        <span>{role}</span>
+                                        <button onClick={() => setEditData(p => ({ ...p, roles: p.roles.filter((_, idx) => idx !== ri) }))} style={{ background: 'transparent', border: 'none', color: 'var(--danger-red)', cursor: 'pointer' }}><Trash2 size={10} /></button>
                                     </div>
-                                );
-                            })}
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                )}
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span className="section-label">Device Type</span>
-                    {isEditing ? (
-                        <select name="type" value={editData.type} onChange={handleChange} className="tech-input" style={{ width: '120px', fontSize: '0.65rem' }}>
-                            {deviceTypes.map(dt => (
-                                <option key={dt.type} value={dt.type}>{dt.label}</option>
-                            ))}
-                        </select>
-                    ) : (
-                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: accentColor, textTransform: 'uppercase' }}>{data.type || 'server'}</span>
                     )}
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span className="section-label">Status</span>
-                    {isEditing ? (
-                        <select name="status" value={editData.status} onChange={handleChange} className="tech-input" style={{ width: '100px', fontSize: '0.65rem' }}>
-                            <option value="online">Online</option>
-                            <option value="offline">Offline</option>
-                        </select>
-                    ) : (
-                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: data.status === 'online' ? 'var(--accent-green)' : 'var(--text-secondary)', textTransform: 'uppercase' }}>{data.status || 'online'}</span>
-                    )}
-                </div>
-
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                    {isEditing ? <input name="model" value={editData.model} onChange={handleChange} className="tech-input" style={{ width: '100%' }} placeholder="Device Model" /> : (data.model || 'Generic Device')}
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                    <span className="section-label">Interfaces</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {(isEditing ? (editData.interfaces || []) : (data.interfaces || [])).map((ni, i) => (
-                            <div key={i} className="container-card" style={{ padding: '4px 8px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: accentColor }}>{ni.name}</span>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: '700', fontFamily: 'monospace' }}>{ni.ip}</span>
-                                </div>
-                                {isEditing && <button onClick={(e) => { e.stopPropagation(); setEditData(p => ({ ...p, interfaces: p.interfaces.filter((_, idx) => idx !== i) })); }} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={10} /></button>}
-                            </div>
-                        ))}
-                        {isEditing && (
-                            <div style={{ marginTop: '8px', padding: '6px', border: '1px dashed var(--panel-border)', borderRadius: '8px', background: 'rgba(0,0,0,0.1)' }}>
-                                <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
-                                    <input placeholder="NIC" value={newInterface.name} onChange={(e) => setNewInterface({ ...newInterface, name: e.target.value.toUpperCase() })} className="tech-input" style={{ width: '40%' }} />
-                                    <input placeholder="IP" value={newInterface.ip} onChange={(e) => setNewInterface({ ...newInterface, ip: e.target.value })} className="tech-input" style={{ flexGrow: 1 }} />
-                                </div>
-                                <button onClick={addInterface} style={{ width: '100%', background: 'rgba(56, 189, 248, 0.1)', border: 'none', color: 'var(--accent-blue)', borderRadius: '4px', padding: '4px', cursor: 'pointer', fontSize: '0.65rem', fontWeight: '800' }}>ADD</button>
-                            </div>
-                        )}
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span className="section-label">Device Type</span>
+                        {isEditing ? <select name="type" value={editData.type} onChange={handleChange} className="tech-input" style={{ width: '120px' }}>{deviceTypes.map(dt => <option key={dt.type} value={dt.type}>{dt.label}</option>)}</select> : <span style={{ fontSize: '0.65rem', fontWeight: '800', color: accentColor }}>{data.type || 'server'}</span>}
                     </div>
-                </div>
 
-                {((isEditing ? editData.dhcpPool : data.dhcpPool)) && (
-                    <div style={{ marginBottom: '16px', padding: '10px', background: 'rgba(242, 204, 21, 0.05)', border: '1px solid rgba(242, 204, 21, 0.2)', borderRadius: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <DatabaseZap size={14} color="var(--accent-yellow)" />
-                                <span className="section-label" style={{ color: 'var(--accent-yellow)', marginBottom: 0 }}>DHCP Pool</span>
-                            </div>
-                            {isEditing && (
-                                <button 
-                                    onClick={(e) => { 
-                                        e.preventDefault();
-                                        e.stopPropagation(); 
-                                        setEditData(prev => ({ ...prev, dhcpPool: '' })); 
-                                    }} 
-                                    style={{ 
-                                        background: 'rgba(239, 68, 68, 0.1)', 
-                                        border: '1px solid rgba(239, 68, 68, 0.2)', 
-                                        color: 'var(--danger-red)', 
-                                        cursor: 'pointer', 
-                                        padding: '2px', 
-                                        borderRadius: '4px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        pointerEvents: 'auto'
-                                    }}
-                                    title="Clear DHCP Pool"
-                                >
-                                    <Trash2 size={10} />
-                                </button>
-                            )}
-                        </div>
-                        {isEditing ? (
-                            <input 
-                                name="dhcpPool" 
-                                value={editData.dhcpPool || ''} 
-                                onChange={handleChange} 
-                                className="tech-input" 
-                                style={{ width: '100%', boxSizing: 'border-box' }} 
-                                placeholder="e.g. 192.168.1.10 - .50"
-                            />
-                        ) : (
-                            data.dhcpPool ? (
-                                <div style={{ fontSize: '0.8rem', fontWeight: '700', fontFamily: 'monospace', wordBreak: 'break-all' }}>{data.dhcpPool}</div>
-                            ) : (
-                                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>None</div>
-                            )
-                        )}
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                        {isEditing ? <input name="model" value={editData.model} onChange={handleChange} className="tech-input" style={{ width: '100%' }} /> : (data.model || 'Generic Device')}
                     </div>
-                )}
 
-                {(isEditing || data.showStats) && isHardwareCapable && (
                     <div style={{ marginBottom: '16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                            <span className="section-label" style={{ marginBottom: 0 }}>Hardware Stats</span>
-                            {isEditing && <input type="checkbox" name="showStats" checked={editData.showStats} onChange={handleChange} />}
-                        </div>
-                        {(isEditing ? editData.showStats : data.showStats) && (
-                            <div style={{ display: 'flex', gap: '8px', padding: '8px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--panel-border)' }}>
-                                {isEditing ? (
-                                    <>
-                                        <input name="cores" value={editData.cores} onChange={handleChange} className="tech-input" style={{ width: '30%' }} />
-                                        <input name="ram" value={editData.ram} onChange={handleChange} className="tech-input" style={{ width: '35%' }} />
-                                        <input name="disk" value={editData.disk} onChange={handleChange} className="tech-input" style={{ width: '35%' }} />
-                                    </>
-                                ) : (
-                                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'white', display: 'flex', justifyContent: 'space-around', width: '100%' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}><span style={{ color: 'var(--text-secondary)', fontSize: '0.6rem' }}>CPU</span><span>{data.cores || 0}</span></div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}><span style={{ color: 'var(--text-secondary)', fontSize: '0.6rem' }}>RAM</span><span>{data.ram || '0'}</span></div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}><span style={{ color: 'var(--text-secondary)', fontSize: '0.6rem' }}>DISK</span><span>{data.disk || '0'}</span></div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {((isEditing ? (editData.containers?.length > 0) : (data.containers?.length > 0)) || isEditing) && (
-                    <div style={{ marginTop: '10px' }}>
-                        <span className="section-label">Containers / Apps</span>
+                        <span className="section-label">Interfaces</span>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {(isEditing ? (editData.containers || []) : (data.containers || [])).map((c, i) => (
-                                <div key={i} className="container-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: c.status === 'offline' ? 'var(--danger-red)' : 'var(--accent-green)' }} />
-                                            {(() => {
-                                                const CIcon = iconMap[c.customIcon] || (c.name === 'DB' ? Database : (c.name === 'VOIP' ? Phone : (c.name === 'Docker' ? Container : (c.name === 'Proxy' ? Globe : Box))));
-                                                return <CIcon size={12} color="var(--text-secondary)" />;
-                                            })()}
-                                            <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'white' }}>{c.name}</span>
-                                        </div>
-                                        {isEditing && (
-                                            <div style={{ display: 'flex', gap: '4px' }}>
-                                                <button onClick={(e) => { e.stopPropagation(); setEditData(p => ({ ...p, containers: p.containers.map((item, idx) => idx === i ? { ...item, status: item.status === 'offline' ? 'online' : 'offline' } : item) })); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }} title="Toggle Status"><Activity size={10} /></button>
-                                                <button onClick={(e) => { 
-                                                    e.stopPropagation(); 
-                                                    setEditData(p => ({ ...p, containers: p.containers.filter((_, idx) => idx !== i) }));
-                                                }} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={10} /></button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    
-                                    {isEditing ? (
-                                        <div style={{ display: 'flex', gap: '4px', width: '100%' }}>
-                                            <input placeholder="IP" value={c.ip} onChange={(e) => { const v = e.target.value; setEditData(p => ({ ...p, containers: p.containers.map((item, idx) => idx === i ? { ...item, ip: v } : item) })); }} className="tech-input" style={{ flexGrow: 1, fontSize: '0.65rem' }} />
-                                            <input placeholder="Port" value={c.port} onChange={(e) => { const v = e.target.value; setEditData(p => ({ ...p, containers: p.containers.map((item, idx) => idx === i ? { ...item, port: v } : item) })); }} className="tech-input" style={{ width: '40px', fontSize: '0.65rem' }} />
-                                        </div>
-                                    ) : (
-                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'monospace', marginLeft: '14px' }}>
-                                            {c.ip || '*'}:{c.port || '??'}
-                                        </span>
-                                    )}
+                            {(isEditing ? (editData.interfaces || []) : (data.interfaces || [])).map((ni, i) => (
+                                <div key={i} className="container-card" style={{ padding: '4px 8px' }}>
+                                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: accentColor }}>{ni.name}</span>
+                                    <span style={{ fontSize: '0.8rem', fontFamily: 'monospace' }}>{ni.ip}</span>
+                                    {isEditing && <button onClick={() => setEditData(p => ({ ...p, interfaces: p.interfaces.filter((_, idx) => idx !== i) }))} style={{ background: 'transparent', border: 'none', color: '#ef4444' }}><Trash2 size={10} /></button>}
                                 </div>
                             ))}
                             {isEditing && (
-                                <div style={{ marginTop: '10px', border: '1px dashed var(--panel-border)', padding: '10px', borderRadius: '8px' }}>
-                                    <input placeholder="Name" value={newContainer.name} onChange={(e) => setNewContainer({ ...newContainer, name: e.target.value })} className="tech-input" style={{ width: '100%', marginBottom: '4px' }} />
-                                    <div style={{ display: 'flex', gap: '4px' }}>
-                                        <input placeholder="IP (optional)" value={newContainer.ip} onChange={(e) => setNewContainer({ ...newContainer, ip: e.target.value })} className="tech-input" style={{ flexGrow: 1 }} />
-                                        <input placeholder="Port" value={newContainer.port} onChange={(e) => setNewContainer({ ...newContainer, port: e.target.value })} className="tech-input" style={{ width: '60px' }} />
+                                <div style={{ marginTop: '8px', padding: '6px', border: '1px dashed var(--panel-border)', borderRadius: '8px' }}>
+                                    <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                                        <input placeholder="NIC" value={newInterface.name} onChange={(e) => setNewInterface({ ...newInterface, name: e.target.value.toUpperCase() })} className="tech-input" style={{ width: '40%' }} />
+                                        <input placeholder="IP" value={newInterface.ip} onChange={(e) => setNewInterface({ ...newInterface, ip: e.target.value })} className="tech-input" style={{ flexGrow: 1 }} />
                                     </div>
-                                    <button onClick={addContainer} style={{ width: '100%', background: 'var(--accent-blue)', border: 'none', color: 'white', borderRadius: '4px', padding: '4px', marginTop: '4px' }}><Plus size={14} /></button>
+                                    <button onClick={addInterface} style={{ width: '100%', background: 'rgba(56, 189, 248, 0.1)', color: 'var(--accent-blue)', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer' }}>ADD</button>
                                 </div>
                             )}
                         </div>
                     </div>
-                )}
-            </div>
-            <Handle type="source" position={Position.Bottom} style={{ background: accentColor }} />
+
+                    {((isEditing ? editData.dhcpPool : data.dhcpPool)) && (
+                        <div style={{ marginBottom: '16px', padding: '10px', background: 'rgba(242, 204, 21, 0.05)', border: '1px solid rgba(242, 204, 21, 0.2)', borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><DatabaseZap size={14} color="var(--accent-yellow)" /><span className="section-label" style={{ color: 'var(--accent-yellow)', marginBottom: 0 }}>DHCP Pool</span></div>
+                            {isEditing ? <input name="dhcpPool" value={editData.dhcpPool || ''} onChange={handleChange} className="tech-input" style={{ width: '100%' }} /> : <div style={{ fontSize: '0.8rem', fontWeight: '700', fontFamily: 'monospace' }}>{data.dhcpPool}</div>}
+                        </div>
+                    )}
+
+                    {((isEditing ? (editData.containers?.length > 0) : (data.containers?.length > 0)) || isEditing) && (
+                        <div style={{ marginTop: '10px' }}>
+                            <span className="section-label">Containers / Apps</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {(isEditing ? (editData.containers || []) : (data.containers || [])).map((c, i) => (
+                                    <div key={i} className="container-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: c.status === 'offline' ? 'var(--danger-red)' : 'var(--accent-green)' }} />
+                                                {(() => { const CIcon = iconMap[c.customIcon] || (c.name === 'DB' ? Database : (c.name === 'VOIP' ? Phone : Box)); return <CIcon size={12} color="var(--text-secondary)" />; })()}
+                                                <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>{c.name}</span>
+                                            </div>
+                                            {isEditing && <button onClick={() => setEditData(p => ({ ...p, containers: p.containers.filter((_, idx) => idx !== i) }))} style={{ background: 'transparent', border: 'none', color: '#ef4444' }}><Trash2 size={10} /></button>}
+                                        </div>
+                                        {isEditing ? <input placeholder="Port" value={c.port} onChange={(e) => { const v = e.target.value; setEditData(p => ({ ...p, containers: p.containers.map((item, idx) => idx === i ? { ...item, port: v } : item) })); }} className="tech-input" style={{ width: '100%' }} /> : <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Port: {c.port}</span>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

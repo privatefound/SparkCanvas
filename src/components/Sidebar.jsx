@@ -4,7 +4,7 @@ import {
     Router, Server, Monitor, HardDrive, Network, Cpu, Wifi, Database, Box, Zap,
     Download, Terminal, Search, DatabaseZap, Shield, Globe, Lock, Settings2,
     PlusSquare, Activity, BarChart3, Eye, HeartPulse, Container, Printer,
-    LayoutGrid, Folder, Phone, Plus
+    LayoutGrid, Folder, Phone, Plus, Square, Circle, Type
 } from 'lucide-react';
 
 const nodeTypes = [
@@ -39,6 +39,12 @@ const serviceTypes = [
     { type: 'custom_service', label: 'Custom App', icon: Plus, color: '#9499ab' },
 ];
 
+const annotationTypes = [
+    { type: 'annotation', label: 'Area (Square)', icon: Square, color: 'var(--accent-blue)' },
+    { type: 'annotation', label: 'Area (Circle)', icon: Circle, color: 'var(--accent-purple)' },
+    { type: 'annotation', label: 'Text Note', icon: Type, color: 'var(--accent-yellow)' },
+];
+
 const Sidebar = ({ onExportPng, onImportPhpIpam }) => {
     const onDragStart = (event, label, dragType) => {
         event.dataTransfer.setData('application/sparkcanvas/type', dragType);
@@ -60,13 +66,6 @@ const Sidebar = ({ onExportPng, onImportPhpIpam }) => {
                 </span>
             </div>
 
-            <div style={{ padding: '0 20px 16px' }}>
-                <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Search size={14} color="var(--text-secondary)" />
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Search library...</span>
-                </div>
-            </div>
-
             <div style={{ flexGrow: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
                 <div className="section-label">Hardware Nodes</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '24px' }}>
@@ -86,8 +85,25 @@ const Sidebar = ({ onExportPng, onImportPhpIpam }) => {
                 </div>
 
                 <div className="section-label">Services & Roles</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '24px' }}>
                     {serviceTypes.map((item) => (
+                        <div key={item.label} className="sidebar-item" draggable onDragStart={(e) => onDragStart(e, item.label, item.type)}
+                            style={{ 
+                                padding: '12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'grab', 
+                                background: 'rgba(255,255,255,0.03)', border: '1px solid var(--panel-border)', borderRadius: '12px', transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.borderColor = item.color}
+                            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--panel-border)'}
+                        >
+                            <div style={{ color: item.color }}><item.icon size={18} /></div>
+                            <span style={{ fontSize: '0.65rem', fontWeight: '700', textAlign: 'center' }}>{item.label}</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="section-label">Annotations</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                    {annotationTypes.map((item) => (
                         <div key={item.label} className="sidebar-item" draggable onDragStart={(e) => onDragStart(e, item.label, item.type)}
                             style={{ 
                                 padding: '12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'grab', 
