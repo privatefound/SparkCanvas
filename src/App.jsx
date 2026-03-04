@@ -15,7 +15,7 @@ import {
   Edit3, Trash2, X, DatabaseZap, FileUp,
   RotateCcw, RotateCw, Save, Layers,
   Plus, ChevronDown, Upload, FileSpreadsheet, Info, CheckCircle,
-  Loader2
+  Loader2, Image as ImageIcon, CheckCircle2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
@@ -54,7 +54,7 @@ const nodeTypes = {
 // --- TopBar Component ---
 const TopBar = ({
   currentMap, maps, onMapChange, onNewMap, onSave, onDeleteMap,
-  onUndo, onRedo, canUndo, canRedo
+  onUndo, onRedo, canUndo, canRedo, onLogoUpload
 }) => (
   <div className="top-bar" style={{
     position: 'absolute', top: 20, left: 360, right: 20, height: '60px',
@@ -102,6 +102,10 @@ const TopBar = ({
     <div style={{ display: 'flex', gap: '8px', borderRight: '1px solid var(--panel-border)', paddingRight: '15px' }}>
       <button onClick={onUndo} disabled={!canUndo} className="node-action-btn" title="Undo"><RotateCcw size={16} opacity={canUndo ? 1 : 0.3} /></button>
       <button onClick={onRedo} disabled={!canRedo} className="node-action-btn" title="Redo"><RotateCw size={16} opacity={canRedo ? 1 : 0.3} /></button>
+    </div>
+
+    <div style={{ display: 'flex', gap: '8px', borderRight: '1px solid var(--panel-border)', paddingRight: '15px' }}>
+      <button onClick={onLogoUpload} className="node-action-btn" title="Upload Corporate Logo"><ImageIcon size={16} /></button>
     </div>
 
     <div style={{ marginLeft: 'auto' }}>
@@ -298,9 +302,10 @@ function App() {
   const reactFlowWrapper = useRef(null);
   const [currentMap, setCurrentMap] = useState('main');
   const [maps, setMaps] = useState({ main: { nodes: [], edges: [] } });
+  const [corporateLogo, setCorporateLogo] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load maps from IndexedDB on mount
+  // Load maps from SQLite on mount
   useEffect(() => {
     const init = async () => {
       let saved = await loadMaps();
@@ -314,10 +319,19 @@ function App() {
         }
       }
       if (saved) {
-        setMaps(saved);
-        if (saved[currentMap]) {
-          setNodes(saved[currentMap].nodes);
-          setEdges(saved[currentMap].edges);
+        if (saved.maps) {
+          setMaps(saved.maps);
+          setCorporateLogo(saved.corporateLogo || null);
+          if (saved.maps[currentMap]) {
+            setNodes(saved.maps[currentMap].nodes);
+            setEdges(saved.maps[currentMap].edges);
+          }
+        } else {
+          setMaps(saved);
+          if (saved[currentMap]) {
+            setNodes(saved[currentMap].nodes);
+            setEdges(saved[currentMap].edges);
+          }
         }
       }
       setIsLoaded(true);
@@ -341,16 +355,30 @@ function App() {
   useEffect(() => { edgesRef.current = edges; }, [edges]);
 
   const saveToLocal = useCallback(async () => {
-    const updated = { ...maps, [currentMap]: { nodes, edges } };
+    const updated = { 
+      maps: { ...maps, [currentMap]: { nodes, edges } },
+      corporateLogo 
+    };
     try {
       await saveMaps(updated);
-      setMaps(updated);
+      setMaps(updated.maps);
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 3000);
     } catch (e) {
       console.error("Failed to save to SQLite", e);
     }
-  }, [nodes, edges, maps, currentMap]);
+  }, [nodes, edges, maps, currentMap, corporateLogo]);
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCorporateLogo(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const recordAction = useCallback(() => {
     setHistory(prev => [...prev, { nodes: [...nodesRef.current], edges: [...edgesRef.current] }].slice(-20));
@@ -533,10 +561,13 @@ function App() {
     if (reactFlowWrapper.current === null) return;
     toPng(reactFlowWrapper.current, {
       backgroundColor: '#0b0c10',
-      filter: (node) => !node?.classList?.contains('react-flow__controls') &&
-        !node?.classList?.contains('react-flow__attribution') &&
-        !node?.classList?.contains('top-bar') &&
-        node?.tagName !== 'ASIDE',
+      filter: (node) => {
+        if (node?.classList?.contains('corporate-logo')) return true;
+        return !node?.classList?.contains('react-flow__controls') &&
+          !node?.classList?.contains('react-flow__attribution') &&
+          !node?.classList?.contains('top-bar') &&
+          node?.tagName !== 'ASIDE';
+      },
     }).then((dataUrl) => {
       const link = document.createElement('a');
       link.download = `sparkcanvas-${currentMap}.png`;
@@ -557,12 +588,24 @@ function App() {
         <ReactFlowProvider>
           <Sidebar onExportPng={onExportPng} onImportPhpIpam={() => setIsImportModalOpen(true)} />
           <div style={{ flexGrow: 1, position: 'relative' }} ref={reactFlowWrapper}>
+            <input type="file" id="logo-upload" accept="image/*" style={{ display: 'none' }} onChange={handleLogoUpload} />
             <TopBar
               currentMap={currentMap} maps={maps} onMapChange={(m) => { saveToLocal(); setCurrentMap(m); setNodes(maps[m].nodes); setEdges(maps[m].edges); }}
               onNewMap={() => { const n = prompt("Name:"); if (n) setMaps({ ...maps, [n]: { nodes: [], edges: [] } }); }} onSave={saveToLocal}
               onDeleteMap={onDeleteMap}
               onUndo={onUndo} onRedo={onRedo} canUndo={history.length > 0} canRedo={future.length > 0}
+              onLogoUpload={() => document.getElementById('logo-upload').click()}
             />
+            
+            {corporateLogo && (
+              <div className="corporate-logo" style={{
+                position: 'absolute', top: '95px', right: '35px', zIndex: 5,
+                maxHeight: '80px', maxWidth: '200px', opacity: 0.7, pointerEvents: 'none'
+              }}>
+                <img src={corporateLogo} alt="Corporate Logo" style={{ maxHeight: '80px', maxWidth: '200px', objectFit: 'contain' }} />
+              </div>
+            )}
+
             <ReactFlow
               nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onConnect={(p) => { recordAction(); setEdges((eds) => addEdge({ ...p, type: 'default', animated: true }, eds)); }}
