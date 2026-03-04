@@ -578,6 +578,7 @@ function App() {
               selectionMode="touch"
               proOptions={{ hideAttribution: true }}
               elevateNodesOnSelect={false}
+              isValidConnection={() => true}
             >
               <Background color="rgba(255,255,255,0.05)" gap={24} size={1} />
               {menu && <ContextMenu x={menu.left} y={menu.top} node={menu.node} onEdit={toggleNodeEdit} onDelete={onDeleteNode} onClose={() => setMenu(null)} onUpdateColor={updateNodeColor} />}

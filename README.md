@@ -8,11 +8,11 @@
 
 **SparkCanvas** is a professional-grade, open-source network mapping tool designed specifically for homelab enthusiasts and network engineers. Stop guessing where your cables go and start visualizing your infrastructure with a "Cyber-Tech" aesthetic inspired by modern SOC dashboards.
 
+<img width="2198" height="1299" alt="demo" src="demo.png" />
+
 ---
 
 ## 🚀 Quick Start (One Command)
-
-Se sei pigro, usa questo comando per fare tutto in automatico (installazione, build e servizio):
 
 ```bash
 git clone https://github.com/privatefound/SparkCanvas.git && cd SparkCanvas && chmod +x install.sh && ./install.sh
