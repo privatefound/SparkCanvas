@@ -61,11 +61,11 @@ app.post('/api/ping', (req, res) => {
 });
 
 // Catch-all route for SPA (React)
-app.get('/*', (req, res) => {
+app.get('/*path', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 const PORT = 3001;
-app.listen(PORT, () => {
-    console.log(`SparkCanvas Backend running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`SparkCanvas Backend running on all interfaces at port ${PORT}`);
 });
