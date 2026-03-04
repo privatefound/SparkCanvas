@@ -19,9 +19,7 @@ The easiest way to install SparkCanvas on Linux is with the provided installatio
 
 **On Debian/Ubuntu, run this to install prerequisites:**
 ```bash
-sudo apt update && sudo apt install -y curl git && \
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && \
-sudo apt install -y nodejs
+sudo apt update && sudo apt install -y curl git && sudo apt install nodejs npm -y
 ```
 
 ### ⚙️ Command

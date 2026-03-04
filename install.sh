@@ -25,6 +25,7 @@ npm run build --silent
 # 4. Creazione cartella /opt/sparkcanvas
 echo -e "${GREEN}📁 Preparazione cartella /opt/sparkcanvas...${NC}"
 sudo mkdir -p /opt/sparkcanvas
+# Copy all files including the updated server.js
 sudo cp -r . /opt/sparkcanvas
 sudo chown -R $(whoami):$(whoami) /opt/sparkcanvas
 
