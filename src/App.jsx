@@ -433,12 +433,25 @@ function App() {
   const onDrop = useCallback((event) => {
     event.preventDefault();
     recordAction();
-    const type = event.dataTransfer.getData('application/reactflow');
-    if (!type || !reactFlowInstance) return;
+    const type = event.dataTransfer.getData('application/sparkcanvas/type');
+    const label = event.dataTransfer.getData('application/sparkcanvas/label');
+    
+    if (type !== 'node' || !reactFlowInstance) return;
+    
     const pos = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
     const newNode = {
       id: uuidv4(), type: 'networkNode', position: pos,
-      data: { label: type.toUpperCase(), type, model: '', status: 'online', interfaces: [{ name: 'ETH0', ip: '0.0.0.0' }], showStats: true, cores: '1', ram: '2GB', disk: '40GB' }
+      data: { 
+        label: label.toUpperCase(), 
+        type: label, 
+        model: '', 
+        status: 'online', 
+        interfaces: [{ name: 'ETH0', ip: '0.0.0.0' }], 
+        showStats: true, 
+        cores: '1', 
+        ram: '2GB', 
+        disk: '40GB' 
+      }
     };
     setNodes((nds) => nds.concat(newNode));
   }, [reactFlowInstance, recordAction]);

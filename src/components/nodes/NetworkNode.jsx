@@ -74,22 +74,32 @@ const NetworkNode = ({ data, selected, id }) => {
 
     const onDropService = (e) => {
         setIsDragOver(false);
-        const serviceName = e.dataTransfer.getData('application/sparkcanvas/service');
-        const roleName = e.dataTransfer.getData('application/sparkcanvas/role');
+        const type = e.dataTransfer.getData('application/sparkcanvas/type');
+        const label = e.dataTransfer.getData('application/sparkcanvas/label');
         
-        if (serviceName || roleName) {
+        if (type && label && type !== 'node') {
             e.preventDefault();
             e.stopPropagation();
             
-            if (roleName) {
-                const updatedRoles = [...(data.roles || []), roleName];
+            if (type === 'role') {
+                const updatedRoles = [...(data.roles || []), label];
                 updateNodeData(id, { ...data, roles: updatedRoles });
                 if (isEditing) setEditData(prev => ({ ...prev, roles: updatedRoles }));
-            } else if (serviceName === 'DHCP Pool') {
+            } else if (label === 'DHCP Pool') {
                 updateNodeData(id, { ...data, dhcpPool: '192.168.x.x - .x' });
                 if (isEditing) setEditData(prev => ({ ...prev, dhcpPool: '192.168.x.x - .x' }));
+            } else if (type === 'custom_service') {
+                const customName = window.prompt("Enter Custom App Name:", "My App");
+                if (customName === null) return; // User cancelled
+                
+                const name = customName.trim() || 'Custom App';
+                const updatedContainers = [...(data.containers || []), { name, ip: '', port: '8080', status: 'online', customIcon: 'plus' }];
+                updateNodeData(id, { ...data, containers: updatedContainers });
+                if (isEditing) setEditData(prev => ({ ...prev, containers: updatedContainers }));
+                setEditingNodeId(id);
             } else {
-                const updatedContainers = [...(data.containers || []), { name: serviceName, ip: '', port: '80', status: 'online' }];
+                const port = label === 'DNS' ? '53' : (label === 'DHCP Pool' ? '67' : '80');
+                const updatedContainers = [...(data.containers || []), { name: label, ip: '', port, status: 'online' }];
                 updateNodeData(id, { ...data, containers: updatedContainers });
                 if (isEditing) setEditData(prev => ({ ...prev, containers: updatedContainers }));
             }
@@ -97,8 +107,7 @@ const NetworkNode = ({ data, selected, id }) => {
     };
 
     const onDragOver = (e) => {
-        if (e.dataTransfer.types.includes('application/sparkcanvas/service') || 
-            e.dataTransfer.types.includes('application/sparkcanvas/role')) {
+        if (e.dataTransfer.types.includes('application/sparkcanvas/type')) {
             e.preventDefault();
             setIsDragOver(true);
         }
@@ -385,18 +394,18 @@ const NetworkNode = ({ data, selected, id }) => {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: c.status === 'offline' ? 'var(--danger-red)' : 'var(--accent-green)' }} />
+                                            {(() => {
+                                                const CIcon = iconMap[c.customIcon] || (c.name === 'DB' ? Database : (c.name === 'VOIP' ? Phone : (c.name === 'Docker' ? Container : (c.name === 'Proxy' ? Globe : Box))));
+                                                return <CIcon size={12} color="var(--text-secondary)" />;
+                                            })()}
                                             <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'white' }}>{c.name}</span>
                                         </div>
-                                        {(isEditing || selected) && (
+                                        {isEditing && (
                                             <div style={{ display: 'flex', gap: '4px' }}>
-                                                {isEditing && <button onClick={(e) => { e.stopPropagation(); setEditData(p => ({ ...p, containers: p.containers.map((item, idx) => idx === i ? { ...item, status: item.status === 'offline' ? 'online' : 'offline' } : item) })); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }} title="Toggle Status"><Activity size={10} /></button>}
+                                                <button onClick={(e) => { e.stopPropagation(); setEditData(p => ({ ...p, containers: p.containers.map((item, idx) => idx === i ? { ...item, status: item.status === 'offline' ? 'online' : 'offline' } : item) })); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }} title="Toggle Status"><Activity size={10} /></button>
                                                 <button onClick={(e) => { 
                                                     e.stopPropagation(); 
-                                                    if (isEditing) {
-                                                        setEditData(p => ({ ...p, containers: p.containers.filter((_, idx) => idx !== i) }));
-                                                    } else {
-                                                        updateNodeData(id, { ...data, containers: data.containers.filter((_, idx) => idx !== i) });
-                                                    }
+                                                    setEditData(p => ({ ...p, containers: p.containers.filter((_, idx) => idx !== i) }));
                                                 }} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={10} /></button>
                                             </div>
                                         )}
