@@ -3,6 +3,7 @@
 ![SparkCanvas Banner](https://img.shields.io/badge/Homelab-Architect-38bdf8?style=for-the-badge&logo=reactflow)
 ![Vite](https://img.shields.io/badge/Vite-747bff?style=for-the-badge&logo=vite&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 > Elevate your network documentation from boring spreadsheets to a high-tech, interactive digital twin. 🚀
 
@@ -12,13 +13,47 @@
 
 ---
 
-## 🚀 Quick Start (One Command)
+## 🚀 Quick Start
+
+### Option 1 — Docker (recommended)
+
+Requires [Docker](https://docs.docker.com/get-docker/) and Docker Compose.
 
 ```bash
-git clone https://github.com/privatefound/SparkCanvas.git && cd SparkCanvas && chmod +x install.sh && ./install.sh
+git clone https://github.com/privatefound/SparkCanvas.git
+cd SparkCanvas
+docker compose up -d --build
 ```
 
-L'app sarà disponibile all'indirizzo: `http://localhost:3001`
+The app will be available at: `http://localhost:3001`
+
+The SQLite database is stored in a named Docker volume (`sparkcanvas_data`) and survives container restarts.
+
+Useful commands:
+```bash
+docker compose logs -f          # follow logs
+docker compose down             # stop
+docker compose down -v          # stop and delete data volume
+```
+
+### Option 2 — Native install (Linux/systemd)
+
+Requires [Node.js](https://nodejs.org/) 18+.
+
+```bash
+git clone https://github.com/privatefound/SparkCanvas.git
+cd SparkCanvas
+chmod +x install.sh
+./install.sh
+```
+
+This installs SparkCanvas as a systemd service that starts automatically on boot.
+
+```bash
+sudo systemctl status sparkcanvas    # check status
+sudo systemctl restart sparkcanvas   # restart
+sudo systemctl stop sparkcanvas      # stop
+```
 
 ---
 
@@ -41,6 +76,8 @@ L'app sarà disponibile all'indirizzo: `http://localhost:3001`
 *   [SQLite3](https://github.com/sqlite/sqlite3) - Local data persistence
 *   [@xyflow/react](https://reactflow.dev/) - The canvas
 *   [Lucide-React](https://lucide.dev/) - The icons
+*   [Vite](https://vitejs.dev/) - Frontend build tool
+*   [Express](https://expressjs.com/) - Backend API
 
 ---
 
