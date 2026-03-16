@@ -14,7 +14,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // --- SQLite Setup ---
-const dbPath = path.join(__dirname, 'sparkcanvas.db');
+const dbPath = path.join(__dirname, 'data', 'sparkcanvas.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error("❌ SQLite connection error:", err.message);
     else console.log("✅ Connected to SQLite database.");

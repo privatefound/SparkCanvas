@@ -24,4 +24,9 @@ dist-ssr
 *.sw?
 *.xls
 *.xlsx
-sparkcanvas.db
+*.db
+data/
+
+# Environment / secrets
+.env
+.env.*

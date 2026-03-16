@@ -1,0 +1,11 @@
+services:
+  sparkcanvas:
+    build: .
+    ports:
+      - "3001:3001"
+    volumes:
+      - sparkcanvas_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  sparkcanvas_data:
